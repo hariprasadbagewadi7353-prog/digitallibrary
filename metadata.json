@@ -1,0 +1,6 @@
+{
+  "name": "Government Digital Library Management System",
+  "description": "Production-ready, accessible, and responsive Government Digital Library Management System with real OCR document scanning (English & Kannada), book cataloging, member registration, circulation (issue/return), overdue tracking, analytics, and role-based access.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
