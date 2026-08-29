@@ -26,10 +26,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       });
       if (res.ok) {
-        const data = await res.json();
-        if (data.user) {
-          setUser(data.user);
-        } else {
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          if (data && data.user) {
+            setUser(data.user);
+          } else {
+            localStorage.removeItem('gov_lib_token');
+            setToken(null);
+            setUser(null);
+          }
+        } catch {
+          // If response was not valid JSON
           localStorage.removeItem('gov_lib_token');
           setToken(null);
           setUser(null);
@@ -62,21 +70,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username: username.trim(), password: password.trim() })
       });
-      const data = await res.json();
+
+      const responseText = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseErr) {
+        return {
+          success: false,
+          error: `Server communication error (${res.status}). Please check system connectivity and retry.`
+        };
+      }
+
       if (!res.ok) {
-        return { success: false, error: data.error || 'Invalid credentials' };
+        return { success: false, error: data.error || 'Invalid credentials provided.' };
       }
       
-      if (rememberMe && data.token) {
-        localStorage.setItem('gov_lib_token', data.token);
+      if (data.token) {
+        if (rememberMe) {
+          localStorage.setItem('gov_lib_token', data.token);
+        }
+        setToken(data.token);
       }
-      setToken(data.token);
-      setUser(data.user);
+      
+      if (data.user) {
+        setUser(data.user);
+      }
+      
       return { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Connection failed' };
+      return { success: false, error: err.message || 'Unable to connect to authentication server.' };
     }
   };
 

@@ -18,12 +18,14 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
-  Layers
+  Layers,
+  Download
 } from 'lucide-react';
 import { Book, Category } from '../../types';
 import { useToast } from '../../context/ToastContext';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { DigitalReaderModal } from './DigitalReaderModal';
+import { exportToCSV } from '../../utils/exportUtils';
 
 interface BookListProps {
   onNavigate: (route: string, id?: string) => void;
@@ -103,6 +105,29 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
     fetchBooks();
   }, [search, categoryFilter, statusFilter, languageFilter, sortBy, sortOrder, page, viewMode]);
 
+  const handleExportCSV = () => {
+    if (books.length === 0) {
+      showToast('warning', 'No Books', 'No books available to export.');
+      return;
+    }
+    exportToCSV(
+      books,
+      `government_library_catalog_${new Date().toISOString().slice(0, 10)}`,
+      [
+        { key: 'book_number', label: 'Accession / Book Number' },
+        { key: 'title', label: 'Book Title' },
+        { key: 'author', label: 'Author' },
+        { key: 'category_name', label: 'Category' },
+        { key: 'language', label: 'Language' },
+        { key: 'publisher', label: 'Publisher' },
+        { key: 'publication_year', label: 'Publication Year' },
+        { key: 'shelf_location', label: 'Shelf Location' },
+        { key: 'status', label: 'Availability Status' }
+      ]
+    );
+    showToast('info', 'Export Started', 'Books catalog exported to CSV.');
+  };
+
   const handleDelete = async () => {
     if (!bookToDelete) return;
     setIsDeleting(true);
@@ -133,35 +158,46 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="bg-white rounded-2xl p-5 md:p-6 shadow-xs border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 md:p-6 shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-50 text-amber-600 border border-amber-200">
+            <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900 leading-tight">
+              <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">
                 Library Catalog & Accession Registry
               </h1>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
                 Manage physical books, digital preservation archives, Kannada literature, and reference volumes.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
+            id="export-books-csv-btn"
+            onClick={handleExportCSV}
+            className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold px-3.5 py-2.5 rounded-xl text-xs border border-slate-300 dark:border-slate-700 flex items-center gap-2 transition-all cursor-pointer"
+          >
+            <Download className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+            <span>Export CSV</span>
+          </button>
+
+          <button
+            id="books-scan-accession-btn"
             onClick={() => onNavigate('books/scan')}
-            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 font-bold px-4 py-2.5 rounded-xl text-xs border border-amber-500/30 flex items-center gap-2 transition-all"
+            className="bg-amber-500/10 dark:bg-amber-500/20 hover:bg-amber-500/20 dark:hover:bg-amber-500/30 text-amber-700 dark:text-amber-300 font-bold px-4 py-2.5 rounded-xl text-xs border border-amber-500/30 flex items-center gap-2 transition-all cursor-pointer"
           >
             <ScanLine className="w-4 h-4" />
             <span>Scan Accession Record</span>
           </button>
 
           <button
+            id="books-add-btn"
             onClick={() => onNavigate('books/add')}
-            className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-xs flex items-center gap-2 transition-all"
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs shadow-xs flex items-center gap-2 transition-all cursor-pointer"
           >
             <BookPlus className="w-4 h-4" />
             <span>Add Book Manually</span>
@@ -170,26 +206,27 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-200 space-y-3">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-xs border border-slate-200 dark:border-slate-800 space-y-3 transition-colors">
         <div className="flex flex-col md:flex-row items-center gap-3">
           <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
             <input
+              id="books-search-input"
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               placeholder="Search by book title, accession code (B-00...), author, publisher, ISBN..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all"
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-amber-500 focus:bg-white dark:focus:bg-slate-850 transition-all"
             />
           </div>
 
           <div className="flex items-center gap-2 self-end md:self-auto">
             {/* View Mode Toggle */}
-            <div className="flex rounded-xl border border-slate-200 p-0.5 bg-slate-100">
+            <div className="flex rounded-xl border border-slate-200 dark:border-slate-700 p-0.5 bg-slate-100 dark:bg-slate-800">
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg text-xs font-semibold ${viewMode === 'grid' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'}`}
+                className={`p-1.5 rounded-lg text-xs font-semibold cursor-pointer ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-500 dark:text-slate-400'}`}
                 title="Grid View"
               >
                 <LayoutGrid className="w-4 h-4" />
@@ -197,7 +234,7 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
               <button
                 type="button"
                 onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-lg text-xs font-semibold ${viewMode === 'table' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500'}`}
+                className={`p-1.5 rounded-lg text-xs font-semibold cursor-pointer ${viewMode === 'table' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' : 'text-slate-500 dark:text-slate-400'}`}
                 title="Table View"
               >
                 <List className="w-4 h-4" />
@@ -206,7 +243,7 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
 
             <button
               onClick={fetchBooks}
-              className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl border border-slate-200"
+              className="p-2 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer"
               title="Refresh Books"
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -215,12 +252,12 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
         </div>
 
         {/* Multi-Filters row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-100 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
           <div>
             <select
               value={categoryFilter}
               onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-semibold rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-amber-500"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-amber-500"
             >
               <option value="ALL">All Categories</option>
               {categories.map(c => (
@@ -233,7 +270,7 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
             <select
               value={languageFilter}
               onChange={(e) => { setLanguageFilter(e.target.value); setPage(1); }}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-semibold rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-amber-500"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-amber-500"
             >
               <option value="ALL">All Languages</option>
               <option value="Kannada">Kannada (ಕನ್ನಡ)</option>
@@ -247,7 +284,7 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-semibold rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-amber-500"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-amber-500"
             >
               <option value="ALL">All Statuses</option>
               <option value="AVAILABLE">Available for Issue</option>
@@ -266,7 +303,7 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
                 setSortOrder(so);
                 setPage(1);
               }}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-700 font-semibold rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-amber-500"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-lg px-2.5 py-1.5 focus:ring-2 focus:ring-amber-500"
             >
               <option value="date_added-desc">Recently Added First</option>
               <option value="title-asc">Title (A to Z)</option>
@@ -279,15 +316,15 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
 
       {/* Catalog Display: Grid vs Table */}
       {isLoading ? (
-        <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-200">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 text-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800">
           <RefreshCw className="w-8 h-8 animate-spin text-amber-500 mx-auto mb-3" />
-          <p className="font-semibold text-slate-600">Retrieving library catalog...</p>
+          <p className="font-semibold text-slate-600 dark:text-slate-300">Retrieving library catalog...</p>
         </div>
       ) : books.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-200">
-          <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="font-bold text-slate-700 text-sm">No books found matching your criteria.</p>
-          <p className="text-xs text-slate-500 mt-1">Try broadening your search filters or add a new book to the catalog.</p>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 text-center text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-800">
+          <BookOpen className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+          <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">No books found matching your criteria.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Try broadening your search filters or add a new book to the catalog.</p>
         </div>
       ) : viewMode === 'grid' ? (
         /* GRID VIEW */
@@ -295,21 +332,21 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
           {books.map((book) => (
             <div
               key={book.id}
-              className="bg-white rounded-2xl p-4 shadow-xs border border-slate-200 hover:border-amber-400 hover:shadow-md transition-all flex flex-col justify-between group"
+              className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-xs border border-slate-200 dark:border-slate-800 hover:border-amber-400 dark:hover:border-amber-600 hover:shadow-md transition-all flex flex-col justify-between group"
             >
               <div>
                 {/* Top Badge & Accession No */}
                 <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className="font-mono text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                  <span className="font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700">
                     {book.book_number}
                   </span>
                   <span
                     className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                       book.status === 'AVAILABLE'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                         : book.status === 'ISSUED'
-                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                        : 'bg-rose-50 text-rose-700 border border-rose-200'
+                        ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                        : 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                     }`}
                   >
                     {book.status}
@@ -328,40 +365,40 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
                   <div className="flex-1 min-w-0">
                     <button
                       onClick={() => onNavigate('books/detail', book.id)}
-                      className="text-sm font-bold text-slate-900 group-hover:text-amber-700 transition-colors line-clamp-2 text-left leading-snug"
+                      className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-2 text-left leading-snug cursor-pointer"
                     >
                       {book.title}
                     </button>
-                    <p className="text-xs text-slate-500 mt-1 truncate">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
                       By {book.author}
                     </p>
-                    <span className="inline-block text-[10px] text-amber-800 font-semibold bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded mt-1.5">
+                    <span className="inline-block text-[10px] text-amber-800 dark:text-amber-300 font-semibold bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 px-1.5 py-0.5 rounded mt-1.5">
                       {book.category_name || 'General'}
                     </span>
                   </div>
                 </div>
 
-                <div className="text-[11px] text-slate-500 space-y-0.5 border-t border-slate-100 pt-2.5">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5 border-t border-slate-100 dark:border-slate-800 pt-2.5">
                   <div className="flex justify-between">
                     <span>Publisher:</span>
-                    <span className="font-medium text-slate-700 truncate max-w-[120px]">{book.publisher || 'N/A'}</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[120px]">{book.publisher || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Year:</span>
-                    <span className="font-medium text-slate-700">{book.publication_year || 'N/A'}</span>
+                    <span className="font-medium text-slate-700 dark:text-slate-300">{book.publication_year || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Shelf:</span>
-                    <span className="font-medium font-mono text-slate-700">{book.shelf_location || 'A-01'}</span>
+                    <span className="font-medium font-mono text-slate-700 dark:text-slate-300">{book.shelf_location || 'A-01'}</span>
                   </div>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between gap-1.5">
+              <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-1.5">
                 <button
                   onClick={() => openReader(book)}
-                  className="flex-1 bg-slate-100 hover:bg-amber-500 hover:text-slate-950 text-slate-700 font-bold py-1.5 px-2 rounded-lg text-xs transition-colors flex items-center justify-center gap-1"
+                  className="flex-1 bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 hover:text-slate-950 dark:hover:bg-amber-500 dark:hover:text-slate-950 text-slate-700 dark:text-slate-200 font-bold py-1.5 px-2 rounded-lg text-xs transition-colors flex items-center justify-center gap-1 cursor-pointer"
                   title="Read Digital Manuscript / PDF"
                 >
                   <FileText className="w-3.5 h-3.5" />
@@ -371,7 +408,7 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
                 {book.status === 'AVAILABLE' && (
                   <button
                     onClick={() => onNavigate('issue-book')}
-                    className="bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 font-bold p-1.5 rounded-lg text-xs border border-emerald-200 transition-colors"
+                    className="bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-700 dark:text-emerald-300 font-bold p-1.5 rounded-lg text-xs border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer"
                     title="Issue This Book"
                   >
                     <ArrowUpRight className="w-4 h-4" />
@@ -380,7 +417,7 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
 
                 <button
                   onClick={() => onNavigate('books/detail', book.id)}
-                  className="p-1.5 text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg transition-colors cursor-pointer"
                   title="Full Catalog Record"
                 >
                   <Eye className="w-4 h-4" />
@@ -388,7 +425,7 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
 
                 <button
                   onClick={() => onNavigate('books/edit', book.id)}
-                  className="p-1.5 text-slate-400 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
                   title="Edit Catalog Details"
                 >
                   <Edit2 className="w-4 h-4" />
@@ -399,7 +436,7 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
                     setBookToDelete(book);
                     setDeleteModalOpen(true);
                   }}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
                   title="Delete Book"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -410,11 +447,11 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
         </div>
       ) : (
         /* TABLE VIEW */
-        <div className="bg-white rounded-2xl shadow-xs border border-slate-200 overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+                <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                   <th className="py-3 px-4">Book No</th>
                   <th className="py-3 px-4">Title</th>
                   <th className="py-3 px-4">Author</th>
@@ -425,34 +462,34 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
                 {books.map((book) => (
-                  <tr key={book.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-slate-900">{book.book_number}</td>
-                    <td className="py-3 px-4 font-bold text-slate-900 max-w-xs truncate">
+                  <tr key={book.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="py-3 px-4 font-mono font-bold text-slate-900 dark:text-white">{book.book_number}</td>
+                    <td className="py-3 px-4 font-bold text-slate-900 dark:text-white max-w-xs truncate">
                       <button
                         onClick={() => onNavigate('books/detail', book.id)}
-                        className="hover:text-amber-700 text-left"
+                        className="hover:text-amber-600 dark:hover:text-amber-400 text-left cursor-pointer"
                       >
                         {book.title}
                       </button>
                     </td>
-                    <td className="py-3 px-4 text-slate-600">{book.author}</td>
+                    <td className="py-3 px-4 text-slate-600 dark:text-slate-400">{book.author}</td>
                     <td className="py-3 px-4">
-                      <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px] font-medium">
+                      <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-[11px] font-medium border border-slate-200 dark:border-slate-700">
                         {book.category_name || 'General'}
                       </span>
                     </td>
                     <td className="py-3 px-4">{book.language}</td>
-                    <td className="py-3 px-4 font-mono text-slate-500">{book.shelf_location || 'A-01'}</td>
+                    <td className="py-3 px-4 font-mono text-slate-500 dark:text-slate-400">{book.shelf_location || 'A-01'}</td>
                     <td className="py-3 px-4">
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           book.status === 'AVAILABLE'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
                             : book.status === 'ISSUED'
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                            ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+                            : 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
                         }`}
                       >
                         {book.status}
@@ -462,21 +499,21 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => openReader(book)}
-                          className="p-1.5 text-slate-500 hover:text-amber-700 hover:bg-amber-50 rounded-lg"
+                          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg cursor-pointer"
                           title="Open Digital Reader"
                         >
                           <FileText className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => onNavigate('books/detail', book.id)}
-                          className="p-1.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg"
+                          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
                           title="View Details"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => onNavigate('books/edit', book.id)}
-                          className="p-1.5 text-slate-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg"
+                          className="p-1.5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg cursor-pointer"
                           title="Edit Book"
                         >
                           <Edit2 className="w-4 h-4" />
@@ -486,7 +523,7 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
                             setBookToDelete(book);
                             setDeleteModalOpen(true);
                           }}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg cursor-pointer"
                           title="Delete Book"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -502,24 +539,24 @@ export const BookList: React.FC<BookListProps> = ({ onNavigate }) => {
       )}
 
       {/* Pagination Controls */}
-      <div className="bg-white rounded-2xl p-4 shadow-xs border border-slate-200 flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-xs border border-slate-200 dark:border-slate-800 flex items-center justify-between transition-colors">
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}
           disabled={page <= 1}
-          className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 flex items-center gap-1"
+          className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 flex items-center gap-1 cursor-pointer"
         >
           <ChevronLeft className="w-3.5 h-3.5" />
           <span>Previous</span>
         </button>
 
-        <span className="text-xs font-medium text-slate-600">
+        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
           Showing Page {page} of {totalPages} ({totalCount} total cataloged books)
         </span>
 
         <button
           onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           disabled={page >= totalPages}
-          className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 flex items-center gap-1"
+          className="px-3.5 py-2 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 flex items-center gap-1 cursor-pointer"
         >
           <span>Next</span>
           <ChevronRight className="w-3.5 h-3.5" />
