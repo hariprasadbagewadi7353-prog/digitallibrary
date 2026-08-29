@@ -22,19 +22,27 @@ import { OCRScannerComponent } from '../ocr/OCRScannerComponent';
 interface BookFormProps {
   bookId?: string; // If editing
   initialData?: ExtractedBookData; // If coming from OCR scanner
+  initialTab?: 'manual' | 'ocr';
   onNavigate: (route: string, id?: string) => void;
 }
 
 export const BookForm: React.FC<BookFormProps> = ({
   bookId,
   initialData,
+  initialTab,
   onNavigate
 }) => {
   const { showToast } = useToast();
   const isEditing = Boolean(bookId);
 
   // Tabs: 'manual' vs 'ocr'
-  const [activeTab, setActiveTab] = useState<'manual' | 'ocr'>(initialData ? 'manual' : 'manual');
+  const [activeTab, setActiveTab] = useState<'manual' | 'ocr'>(initialTab || (initialData ? 'manual' : 'manual'));
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Categories list
   const [categories, setCategories] = useState<Category[]>([]);

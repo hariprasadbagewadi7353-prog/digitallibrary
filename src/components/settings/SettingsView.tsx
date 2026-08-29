@@ -20,12 +20,22 @@ import { Category, AuditLog } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 
-export const SettingsView: React.FC = () => {
+interface SettingsViewProps {
+  initialTab?: 'library' | 'policy' | 'categories' | 'audit';
+}
+
+export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'library' }) => {
   const { user } = useAuth();
   const { showToast } = useToast();
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'library' | 'policy' | 'categories' | 'audit'>('library');
+  const [activeTab, setActiveTab] = useState<'library' | 'policy' | 'categories' | 'audit'>(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Library General Settings
   const [libraryName, setLibraryName] = useState('Government Central Library Gokak');

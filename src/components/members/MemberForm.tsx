@@ -22,19 +22,27 @@ import { OCRScannerComponent } from '../ocr/OCRScannerComponent';
 interface MemberFormProps {
   memberId?: string; // If editing
   initialData?: ExtractedMemberData; // If coming from OCR scanner
+  initialTab?: 'manual' | 'ocr';
   onNavigate: (route: string, id?: string) => void;
 }
 
 export const MemberForm: React.FC<MemberFormProps> = ({
   memberId,
   initialData,
+  initialTab,
   onNavigate
 }) => {
   const { showToast } = useToast();
   const isEditing = Boolean(memberId);
 
   // Tabs: 'manual' vs 'ocr'
-  const [activeTab, setActiveTab] = useState<'manual' | 'ocr'>(initialData ? 'manual' : 'manual');
+  const [activeTab, setActiveTab] = useState<'manual' | 'ocr'>(initialTab || (initialData ? 'manual' : 'manual'));
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
 
   // Form Fields
   const [studentName, setStudentName] = useState(initialData?.student_name || '');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { Navbar } from './components/layout/Navbar';
@@ -20,20 +20,50 @@ import { OverdueView } from './components/circulation/OverdueView';
 import { OCRWorkspaceView } from './components/ocr/OCRWorkspaceView';
 import { ReportsView } from './components/reports/ReportsView';
 import { SettingsView } from './components/settings/SettingsView';
+import { GlobalSearchView } from './components/search/GlobalSearchView';
+import { UsersView } from './components/admin/UsersView';
 
 const AppContent: React.FC = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [currentRoute, setCurrentRoute] = useState('dashboard');
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
   const [extraState, setExtraState] = useState<any>(undefined);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [overdueCount, setOverdueCount] = useState<number>(0);
 
   const handleNavigate = (route: string, id?: string, extra?: any) => {
     setCurrentRoute(route);
     setSelectedId(id);
     setExtraState(extra);
+    setSidebarOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Global shortcut: Ctrl+K or Cmd+K opens Global Search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCurrentRoute('search');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Fetch overdue count for live badges
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetch('/api/overdue')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.total_overdue !== undefined) {
+            setOverdueCount(data.total_overdue);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isAuthenticated, currentRoute]);
 
   if (isLoading) {
     return (
@@ -55,6 +85,10 @@ const AppContent: React.FC = () => {
     switch (currentRoute) {
       case 'dashboard':
         return <DashboardView onNavigate={handleNavigate} />;
+
+      // Search
+      case 'search':
+        return <GlobalSearchView onNavigate={handleNavigate} />;
 
       // Members
       case 'members':
@@ -83,6 +117,7 @@ const AppContent: React.FC = () => {
       case 'members/scan':
         return (
           <MemberForm
+            initialTab="ocr"
             onNavigate={handleNavigate}
           />
         );
@@ -114,6 +149,7 @@ const AppContent: React.FC = () => {
       case 'books/scan':
         return (
           <BookForm
+            initialTab="ocr"
             onNavigate={handleNavigate}
           />
         );
@@ -128,15 +164,24 @@ const AppContent: React.FC = () => {
       case 'overdue':
         return <OverdueView />;
 
-      // OCR Scanner
+      // OCR Scanner Desk
       case 'ocr-scanner':
         return <OCRWorkspaceView onNavigate={handleNavigate} />;
 
-      // Reports & Settings
+      // Reports
       case 'reports':
         return <ReportsView />;
+
+      // Administration & Settings
       case 'settings':
-        return <SettingsView />;
+      case 'admin/settings':
+        return <SettingsView initialTab="library" />;
+      case 'admin/categories':
+        return <SettingsView initialTab="categories" />;
+      case 'admin/audit-logs':
+        return <SettingsView initialTab="audit" />;
+      case 'admin/users':
+        return <UsersView />;
 
       default:
         return <DashboardView onNavigate={handleNavigate} />;
@@ -146,15 +191,20 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans">
       {/* Top Navigation */}
-      <Navbar onNavigate={handleNavigate} />
+      <Navbar
+        currentRoute={currentRoute}
+        onNavigate={handleNavigate}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+      />
 
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
         <Sidebar
           currentRoute={currentRoute}
           onNavigate={handleNavigate}
-          isCollapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          overdueCount={overdueCount}
         />
 
         {/* Main Content Area */}

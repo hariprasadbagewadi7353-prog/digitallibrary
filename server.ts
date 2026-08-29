@@ -597,6 +597,10 @@ async function startServer() {
     return res.json(db.getAuditLogs());
   });
 
+  app.get('/api/audit-logs', (req, res) => {
+    return res.json({ logs: db.getAuditLogs() });
+  });
+
   // ==========================================
   // VITE DEV MIDDLEWARE / STATIC PRODUCTION
   // ==========================================

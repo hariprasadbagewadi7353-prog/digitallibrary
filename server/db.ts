@@ -963,6 +963,7 @@ class LibraryDatabase {
     let summary: Record<string, any> = {};
 
     switch (reportType) {
+      case 'books':
       case 'total_books':
       case 'available_books':
       case 'issued_books': {
@@ -976,6 +977,7 @@ class LibraryDatabase {
         };
         break;
       }
+      case 'overdue':
       case 'overdue_books': {
         data = this.getOverdueRecords();
         summary = {
@@ -986,6 +988,7 @@ class LibraryDatabase {
         };
         break;
       }
+      case 'members':
       case 'total_members':
       case 'new_members': {
         const res = this.getMembers({ limit: 1000 });
@@ -1000,11 +1003,12 @@ class LibraryDatabase {
         };
         break;
       }
+      case 'active_loans':
       case 'issue_history': {
         const res = this.getTransactions({ status: 'ISSUED', from_date: dateRange?.from, to_date: dateRange?.to, limit: 1000 });
         data = res.transactions;
         summary = {
-          report_name: 'BOOK ISSUE HISTORY REPORT',
+          report_name: 'BOOK ISSUE / ACTIVE LOANS REPORT',
           total_issues: data.length,
           generated_date: today,
         };
