@@ -4,6 +4,7 @@ import { User } from '../types';
 interface AuthContextType {
   user: User | null;
   token: string | null;
+  isAuthenticated: boolean;
   isLoading: boolean;
   login: (username: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
@@ -26,7 +27,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (res.ok) {
         const data = await res.json();
-        setUser(data.user);
+        if (data.user) {
+          setUser(data.user);
+        } else {
+          localStorage.removeItem('gov_lib_token');
+          setToken(null);
+          setUser(null);
+        }
       } else {
         localStorage.removeItem('gov_lib_token');
         setToken(null);
@@ -34,6 +41,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (err) {
       console.error('Auth verification failed:', err);
+      localStorage.removeItem('gov_lib_token');
+      setToken(null);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -43,16 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (token) {
       fetchCurrentUser(token);
     } else {
-      // Auto-load default user for instant preview if no session exists
-      fetch('/api/auth/me')
-        .then(res => res.json())
-        .then(data => {
-          if (data.user) {
-            setUser(data.user);
-          }
-        })
-        .catch(console.error)
-        .finally(() => setIsLoading(false));
+      setIsLoading(false);
     }
   }, [token]);
 
@@ -67,11 +68,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!res.ok) {
         return { success: false, error: data.error || 'Invalid credentials' };
       }
-      setToken(data.token);
-      setUser(data.user);
-      if (rememberMe) {
+      
+      if (rememberMe && data.token) {
         localStorage.setItem('gov_lib_token', data.token);
       }
+      setToken(data.token);
+      setUser(data.user);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Connection failed' };
@@ -94,10 +96,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const isAuthenticated = Boolean(user);
   const isAdmin = user?.role === 'ADMIN';
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, isAdmin }}>
+    <AuthContext.Provider value={{ user, token, isAuthenticated, isLoading, login, logout, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

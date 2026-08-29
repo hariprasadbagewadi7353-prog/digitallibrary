@@ -19,24 +19,45 @@ export const LoginView: React.FC = () => {
 
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('admin123');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(username, password);
-    if (!success) {
-      showToast('error', 'Authentication Failed', 'Invalid username or password credentials.');
-    } else {
-      showToast('success', 'Authenticated', `Welcome back, ${username}!`);
+    setErrorMessage('');
+    setIsSubmitting(true);
+    try {
+      const result = await login(username, password);
+      if (!result.success) {
+        const errorText = result.error || 'Invalid username or password credentials.';
+        setErrorMessage(errorText);
+        showToast('error', 'Authentication Failed', errorText);
+      } else {
+        showToast('success', 'Authenticated', `Welcome back, ${username}!`);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleQuickLogin = (role: 'admin' | 'librarian') => {
-    if (role === 'admin') {
-      setUsername('admin');
-      setPassword('admin123');
-    } else {
-      setUsername('librarian');
-      setPassword('lib123');
+  const handleQuickLogin = async (role: 'admin' | 'librarian') => {
+    const u = role === 'admin' ? 'admin' : 'librarian';
+    const p = role === 'admin' ? 'admin123' : 'lib123';
+    setUsername(u);
+    setPassword(p);
+    setErrorMessage('');
+    setIsSubmitting(true);
+    try {
+      const result = await login(u, p);
+      if (!result.success) {
+        const errorText = result.error || 'Authentication failed.';
+        setErrorMessage(errorText);
+        showToast('error', 'Authentication Failed', errorText);
+      } else {
+        showToast('success', 'Authenticated', `Welcome back, ${u}!`);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -95,12 +116,19 @@ export const LoginView: React.FC = () => {
             </div>
           </div>
 
+          {errorMessage && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-600 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-2 mt-2"
+            disabled={isLoading || isSubmitting}
+            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-3 rounded-xl text-sm shadow-md transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-60 cursor-pointer"
           >
-            {isLoading ? (
+            {isLoading || isSubmitting ? (
               <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
             ) : (
               <>

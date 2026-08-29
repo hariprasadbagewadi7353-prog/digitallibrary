@@ -39,6 +39,13 @@ const AppContent: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Reset route to dashboard when authenticating
+  useEffect(() => {
+    if (isAuthenticated && (currentRoute === 'login' || !currentRoute)) {
+      setCurrentRoute('dashboard');
+    }
+  }, [isAuthenticated, currentRoute]);
+
   // Global shortcut: Ctrl+K or Cmd+K opens Global Search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
